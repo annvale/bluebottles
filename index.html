@@ -33,6 +33,14 @@ body{background:linear-gradient(180deg,#050a18,#0a1628 30%,#0d1f3c 60%,#081530);
 .header .sub{font-size:11px;color:rgba(150,180,220,.25);margin-top:13px;letter-spacing:2px;line-height:1.8}
 .rnd-btn{margin-top:18px;background:rgba(100,140,200,.07);border:1px solid rgba(100,140,200,.13);border-radius:20px;padding:7px 20px;color:rgba(180,200,230,.4);cursor:pointer;font-family:'Cormorant Garamond','Noto Serif SC',serif;font-size:11.5px;letter-spacing:2px;transition:all .2s;outline:none}
 .rnd-btn:active,.rnd-btn:hover{background:rgba(100,140,200,.14);color:rgba(210,225,245,.65)}
+.shell-wrap{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;padding:0 20px 8px}
+.shell-btn{background:none;border:none;cursor:pointer;padding:8px;opacity:.35;transition:opacity .4s,transform .3s;outline:none}
+.shell-btn:active{opacity:.55;transform:scale(1.1)}
+.shell-btn.open{opacity:.5;transform:scale(1.05)}
+.shell-menu{display:flex;align-items:center;gap:16px;max-height:0;overflow:hidden;opacity:0;transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .35s ease,margin .3s ease;margin-top:0}
+.shell-menu.open{max-height:50px;opacity:1;margin-top:6px}
+.shell-item{background:none;border:none;cursor:pointer;padding:5px 10px;color:rgba(150,180,220,.25);font-family:'Cormorant Garamond','Noto Serif SC',serif;font-size:10.5px;letter-spacing:1.5px;transition:all .2s;outline:none}
+.shell-item:active{color:rgba(180,200,230,.5)}
 .sea{position:relative;z-index:10;display:flex;flex-wrap:wrap;justify-content:center;gap:34px;padding:30px 22px 120px;max-width:780px;margin:0 auto}
 .bottle-wrap{animation:fu .6s ease-out both}
 .bottle-btn{background:none;border:none;cursor:pointer;padding:0;display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .3s ease;outline:none}
@@ -125,6 +133,40 @@ textarea.form-input{resize:vertical;line-height:1.9}
   <button class="rnd-btn" id="rnd-main">随海浪拾取一个瓶子</button>
 </div>
 <div class="sea" id="sea"></div>
+<div class="shell-wrap" id="shell-wrap">
+  <button class="shell-btn" id="shell-btn" aria-label="打开工具">
+    <svg width="30" height="26" viewBox="0 0 40 34" fill="none">
+      <defs>
+        <radialGradient id="sg" cx="50%" cy="80%" r="70%">
+          <stop offset="0%" stop-color="rgba(180,210,245,.12)"/>
+          <stop offset="100%" stop-color="rgba(120,160,210,.03)"/>
+        </radialGradient>
+        <linearGradient id="se" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="rgba(160,195,235,.22)"/>
+          <stop offset="100%" stop-color="rgba(120,160,210,.1)"/>
+        </linearGradient>
+      </defs>
+      <path d="M20 3 C20 3,4 12,3 24 C2.5 27,5 30,10 31 C14 32,17 32,20 32 C23 32,26 32,30 31 C35 30,37.5 27,37 24 C36 12,20 3,20 3Z" fill="url(#sg)" stroke="url(#se)" stroke-width=".8"/>
+      <path d="M20 5 Q20 18,20 31" stroke="rgba(160,195,235,.12)" stroke-width=".5" fill="none"/>
+      <path d="M20 5 Q16 17,10 29" stroke="rgba(160,195,235,.09)" stroke-width=".4" fill="none"/>
+      <path d="M20 5 Q24 17,30 29" stroke="rgba(160,195,235,.09)" stroke-width=".4" fill="none"/>
+      <path d="M20 5 Q13 15,5 26" stroke="rgba(160,195,235,.06)" stroke-width=".4" fill="none"/>
+      <path d="M20 5 Q27 15,35 26" stroke="rgba(160,195,235,.06)" stroke-width=".4" fill="none"/>
+      <path d="M20 5 Q17.5 16,14.5 28.5" stroke="rgba(160,195,235,.07)" stroke-width=".3" fill="none"/>
+      <path d="M20 5 Q22.5 16,25.5 28.5" stroke="rgba(160,195,235,.07)" stroke-width=".3" fill="none"/>
+      <path d="M20 5 Q10 13,6.5 23" stroke="rgba(160,195,235,.05)" stroke-width=".3" fill="none"/>
+      <path d="M20 5 Q30 13,33.5 23" stroke="rgba(160,195,235,.05)" stroke-width=".3" fill="none"/>
+      <ellipse cx="20" cy="28" rx="10" ry="2.5" fill="rgba(160,200,240,.04)"/>
+      <circle cx="17" cy="20" r="1" fill="rgba(200,225,255,.06)"><animate attributeName="opacity" values=".04;.1;.04" dur="4s" repeatCount="indefinite"/></circle>
+      <circle cx="23" cy="16" r=".7" fill="rgba(200,225,255,.06)"><animate attributeName="opacity" values=".03;.09;.03" dur="3.5s" repeatCount="indefinite"/></circle>
+    </svg>
+  </button>
+  <div class="shell-menu" id="shell-menu">
+    <button class="shell-item" id="export-btn">漂流瓶打捞</button>
+    <button class="shell-item" id="import-btn">海上来信</button>
+  </div>
+</div>
+<input type="file" id="import-file" accept=".json" style="display:none">
 <div class="footer"><div>🕊️ YCA1120 — 星河不灭</div></div>
 <div id="overlay"></div>
 <script>
@@ -338,6 +380,83 @@ function randomPick(){
 function closeO(){document.getElementById("overlay").innerHTML="";}
 
 document.getElementById("rnd-main").addEventListener("click",randomPick);
+
+(function(){
+  var shellBtn=document.getElementById("shell-btn");
+  var shellMenu=document.getElementById("shell-menu");
+  var isOpen=false;
+  function toggleShell(){
+    isOpen=!isOpen;
+    shellBtn.classList.toggle("open",isOpen);
+    shellMenu.classList.toggle("open",isOpen);
+  }
+  function closeShell(){
+    if(!isOpen)return;
+    isOpen=false;
+    shellBtn.classList.remove("open");
+    shellMenu.classList.remove("open");
+  }
+  shellBtn.addEventListener("click",function(e){e.stopPropagation();toggleShell();});
+  shellMenu.addEventListener("click",function(e){e.stopPropagation();});
+  document.addEventListener("click",closeShell);
+
+  document.getElementById("export-btn").addEventListener("click",function(){
+    closeShell();
+    if(!stories.length){return;}
+    var data=JSON.stringify(stories,null,2);
+    var blob=new Blob([data],{type:"application/json"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    var d=new Date();
+    var ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    a.href=url;a.download="\u6df1\u84dd\u74f6\u5b50_"+ds+".json";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("import-btn").addEventListener("click",function(){
+    closeShell();
+    document.getElementById("import-file").click();
+  });
+})();
+
+document.getElementById("import-file").addEventListener("change",function(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var imported=JSON.parse(ev.target.result);
+      if(!Array.isArray(imported)){return;}
+      var o=document.getElementById("overlay");
+      o.innerHTML='<div class="overlay" id="ov"><div class="confirm-box" id="cb">'
+      +'<div class="confirm-text">\u6d77\u4e0a\u6f02\u6765\u4e86 '+imported.length+' \u4e2a\u74f6\u5b50\u3002<br><br>\u600e\u4e48\u5904\u7406\u5b83\u4eec\uff1f</div>'
+      +'<div class="form-actions" style="flex-direction:column;gap:8px;align-items:center">'
+      +'<button class="btn-s btn-p" id="im-merge" style="width:180px">\u548c\u73b0\u6709\u7684\u6df7\u5728\u4e00\u8d77</button>'
+      +'<button class="btn-s" id="im-replace" style="width:180px">\u66ff\u6362\u6240\u6709\u74f6\u5b50</button>'
+      +'<button class="btn-s" id="im-cancel" style="width:180px">\u7b97\u4e86</button>'
+      +'</div></div></div>';
+      document.getElementById("ov").addEventListener("click",function(ev2){if(ev2.target===this)closeO();});
+      document.getElementById("cb").addEventListener("click",function(ev2){ev2.stopPropagation();});
+      document.getElementById("im-cancel").addEventListener("click",closeO);
+      document.getElementById("im-merge").addEventListener("click",function(){
+        var existIds={};stories.forEach(function(s){existIds[s.id]=true;});
+        imported.forEach(function(s){
+          if(!s.id)s.id="s-"+Date.now()+"-"+Math.random().toString(36).substr(2,4);
+          if(!existIds[s.id])stories.push(s);
+        });
+        stories.sort(function(a,b){return a.date.localeCompare(b.date);});
+        save();render();closeO();
+      });
+      document.getElementById("im-replace").addEventListener("click",function(){
+        stories=imported.slice();
+        stories.forEach(function(s){if(!s.note)s.note="";if(s.capVar==null)s.capVar=0;if(s.glowVar==null)s.glowVar=0;});
+        stories.sort(function(a,b){return a.date.localeCompare(b.date);});
+        save();render();closeO();
+      });
+    }catch(err){}
+  };
+  reader.readAsText(file);
+  e.target.value="";
+});
 
 (function(){
   var c=document.getElementById("particles");
